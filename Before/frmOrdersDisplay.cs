@@ -1,0 +1,143 @@
+﻿using Application.Services;
+using Autofac;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Models;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+//using Models.Enums;
+
+namespace E_commerce.Presentation
+{
+    public partial class frmOrdersDisplay : Form
+    {
+        private readonly IOrderService _orderService;
+        DataGridViewImageColumn btnApprove;
+        DataGridViewImageColumn btnDeny;
+        private readonly IAdminService _adminService;
+        private void loadOrders()
+        {
+            dgvOrders.DataSource = _adminService.GetAllOrders(cmbOrderStatus.SelectedText);
+
+            if ((OrderStatus)cmbOrderStatus.SelectedValue == OrderStatus.Pending)
+            {
+                btnDeny.DisplayIndex = dgvOrders.Columns.Count - 1;
+                btnApprove.DisplayIndex = dgvOrders.Columns.Count - 2;
+               
+                btnApprove.Visible = true;
+                btnDeny.Visible = true;
+            }
+            else
+            {
+                btnApprove.Visible = false;
+                btnDeny.Visible = false;
+            }
+            dgvOrders.DataSource = _adminService.GetAllOrders(cmbOrderStatus.SelectedText);
+
+        }
+
+        public frmOrdersDisplay()
+        {
+
+            InitializeComponent();
+            var container = AutofacConfig.Configure();
+            _orderService = container.Resolve<IOrderService>();
+            _adminService = container.Resolve<IAdminService>();
+        }
+
+        void frmOrdersDisplay_Load(object sender, EventArgs e)
+        {
+            dgvOrders.EnableHeadersVisualStyles = false;
+            dgvOrders.BackgroundColor = Color.White;
+            dgvOrders.ColumnHeadersDefaultCellStyle.BackColor = Color.BlueViolet;
+            dgvOrders.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+            dgvOrders.DefaultCellStyle.BackColor = Color.White;
+            dgvOrders.DefaultCellStyle.ForeColor = Color.Black;
+            dgvOrders.ColumnHeadersDefaultCellStyle.Font = new Font("Arial", 12, FontStyle.Bold);
+
+            dgvOrders.Dock = DockStyle.Fill;
+
+            dgvOrders.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+
+            //adding approve button
+            btnApprove = new DataGridViewImageColumn();
+            btnApprove.Name = "btnApprove";
+            btnApprove.HeaderText = "Approve";
+            //btnApprove.Image = Image.FromFile(Path.Combine(Application.StartupPath, "Resources", "approve.png"));
+            btnApprove.Image = Image.FromFile("Resources/approve.png");
+            
+            dgvOrders.Columns.Add(btnApprove);
+            
+
+            // adding deny button 
+            btnDeny = new DataGridViewImageColumn();
+            btnDeny.Name = "btnDeny";
+            btnDeny.HeaderText = "Deny";
+            btnDeny.Image = Image.FromFile(Path.Combine(System.Windows.Forms.Application.StartupPath, "Resources", "DenyOrder.png"));
+            dgvOrders.Columns.Add(btnDeny);
+
+
+
+            cmbOrderStatus.DataSource = Enum.GetValues<OrderStatus>();
+        }
+
+
+
+        private void cmbOrderStatus_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            loadOrders();
+        }
+
+        private void dgvOrders_CellClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex >= 0 && e.ColumnIndex >= 0)
+            {
+                // Handel clicking btnApprove button
+                if (dgvOrders.Columns[e.ColumnIndex].Name == "btnApprove")
+                {
+                    // if btnApprove button clicked
+                    if (MessageBox.Show("Are you sure you want to approve this order?", "Confirm order approval",
+                        MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                    {
+                        if (int.TryParse(dgvOrders.Rows[e.RowIndex].Cells["OrderId"].Value?.ToString(), out int id))
+                        {
+                            _adminService.UpdateOrderStatus.(id);
+                        }
+                        else
+                        {
+                            MessageBox.Show("Invalid Order ID.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                    }
+                }
+                // Handel clicking btnDeny button
+                else if ((dgvOrders.Columns[e.ColumnIndex].Name == "btnDeny"))
+
+               if (MessageBox.Show("Are you sure you want to deny this order?", "Confirm Order dening",
+                      MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                 {
+
+                        if (int.TryParse(dgvOrders.Rows[e.RowIndex].Cells["OrderId"].Value?.ToString(), out int id))
+                        {
+                            _orderService.DenyOrder(id);
+                        }
+                        else
+                        {
+                            MessageBox.Show("Invalid Order ID.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                }
+
+
+                loadOrders();
+            }
+        }
+
+
+    }
+}
+
